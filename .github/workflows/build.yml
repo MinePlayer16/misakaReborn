@@ -1,0 +1,39 @@
+name: Build MisakaReborn IPA
+
+on:
+  workflow_dispatch: # Ti permette di lanciare il build a mano
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Resolve Dependencies
+        run: xcodebuild -resolvePackageDependencies -project misaka.xcodeproj -scheme misaka
+
+      - name: Build App
+        run: |
+          xcodebuild build -project misaka.xcodeproj \
+            -scheme misaka \
+            -configuration Debug \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Create IPA Package
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Debug-iphoneos/misaka.app Payload/
+          zip -r misaka_18.5_fixed.ipa Payload
+          
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: MisakaReborn-iOS18.5-OffsetFixed
+          path: misaka_18.5_fixed.ipa
